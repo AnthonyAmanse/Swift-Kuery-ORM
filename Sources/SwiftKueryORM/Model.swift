@@ -75,15 +75,15 @@ public protocol Model: Codable {
 
   /// Call to find all the models in the database matching the QueryParams that accepts a completion
   /// handler. The callback is passed an array of models or an error
-  static func findAll<Q: QueryParams>(using db: Database?, matching queryParams: Q, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void)
+  static func findAll<Q: QueryParams>(using db: Database?, matching queryParams: Q?, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void)
 
   /// Call to find all the models in the database matching the QueryParams that accepts a completion
   /// handler. The callback is passed an array of tuples (id, model) or an error
-  static func findAll<Q: QueryParams, I: Identifier>(using db: Database?, matching queryParams: Q, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void)
+  static func findAll<Q: QueryParams, I: Identifier>(using db: Database?, matching queryParams: Q?, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void)
 
   /// Call to find all the models in the database matching the QueryParams that accepts a completion
   /// handler. The callback is passed a dictionary [id: model] or an error
-  static func findAll<Q: QueryParams, I: Identifier>(using db: Database?, matching queryParams: Q, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void)
+  static func findAll<Q: QueryParams, I: Identifier>(using db: Database?, matching queryParams: Q?, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void)
 
   /// Call to update a model in the database with an id that accepts a completion
   /// handler. The callback is passed a updated model or an error
@@ -341,54 +341,82 @@ public extension Model {
 
   /// - Parameter matching: Optional QueryParams to use
   /// - Returns: An array of model
-  static func findAll<Q: QueryParams>(using db: Database? = nil, matching queryParams: Q, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void) {
+  static func findAll<Q: QueryParams>(using db: Database? = nil, matching queryParams: Q? = nil, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void) {
     var table: Table
-    var filter: Filter
     do {
       table = try Self.getTable()
-      filter = try Self.getFilter(queryParams: queryParams, table: table)
     } catch let error {
       onCompletion(nil, Self.convertError(error))
       return
     }
 
-    let query = Select(from: table).where(filter)
+    var query: Select = Select(from: table)
+    if let queryParams = queryParams {
+      do {
+        let values: [String: Any] = try QueryEncoder().encode(queryParams)
+        let filter = try Self.getFilter(query: query, values: values, table: table)
+        let order: [OrderBy] = Self.getOrderBy(query: query, values: values, table: table)
+        query = query.where(filter).order(by: order)
+      } catch let error {
+        onCompletion(nil, Self.convertError(error))
+        return
+      }
+    }
     Self.executeQuery(query: query, using: db, onCompletion)
   }
 
   /// Find all the models matching the QueryParams
   /// - Parameter using: Optional Database to use
   /// - Returns: An array of tuples (id, model)
-  static func findAll<Q: QueryParams, I: Identifier>(using db: Database? = nil, matching queryParams: Q, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void) {
+  static func findAll<Q: QueryParams, I: Identifier>(using db: Database? = nil, matching queryParams: Q? = nil, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void) {
     var table: Table
-    var filter: Filter
     do {
       table = try Self.getTable()
-      filter = try Self.getFilter(queryParams: queryParams, table: table)
     } catch let error {
       onCompletion(nil, Self.convertError(error))
       return
     }
 
-    let query = Select(from: table).where(filter)
+    var query: Select = Select(from: table)
+    if let queryParams = queryParams {
+      do {
+        let values: [String: Any] = try QueryEncoder().encode(queryParams)
+        let filter = try Self.getFilter(query: query, values: values, table: table)
+        let order = Self.getOrderBy(query: query, values: values, table: table)
+        query = query.where(filter).order(by: order)
+      } catch let error {
+        onCompletion(nil, Self.convertError(error))
+        return
+      }
+    }
     Self.executeQuery(query: query, using: db, onCompletion)
   }
 
   /// Find all the models matching the QueryParams
   /// - Parameter using: Optional Database to use
   /// - Returns: A dictionary [id: model]
-  static func findAll<Q:QueryParams, I: Identifier>(using db: Database? = nil, matching queryParams: Q, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void) {
+  static func findAll<Q:QueryParams, I: Identifier>(using db: Database? = nil, matching queryParams: Q? = nil, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void) {
     var table: Table
-    var filter: Filter
     do {
       table = try Self.getTable()
-      filter = try Self.getFilter(queryParams: queryParams, table: table)
     } catch let error {
       onCompletion(nil, Self.convertError(error))
       return
     }
 
-    let query = Select(from: table).where(filter)
+    var query: Select = Select(from: table)
+    if let queryParams = queryParams {
+      do {
+        let values: [String: Any] = try QueryEncoder().encode(queryParams)
+        let filter = try Self.getFilter(query: query, values: values, table: table)
+        let order = Self.getOrderBy(query: query, values: values, table: table)
+        query = query.where(filter).order(by: order)
+      } catch let error {
+        onCompletion(nil, Self.convertError(error))
+        return
+      }
+    }
+
     Self.executeQuery(query: query, using: db) { (tuples: [(I, Self)]?, error: RequestError?) in
       if let error = error {
         onCompletion(nil, error)
@@ -464,16 +492,22 @@ public extension Model {
   /// - Returns: An optional RequestError
   static func deleteAll<Q: QueryParams>(using db: Database? = nil, matching queryParams: Q, _ onCompletion: @escaping (RequestError?) -> Void) {
     var table: Table
-    var filter: Filter
     do {
       table = try Self.getTable()
-      filter = try Self.getFilter(queryParams: queryParams, table: table)
     } catch let error {
       onCompletion(Self.convertError(error))
       return
     }
 
-    let query = Delete(from: table).where(filter)
+    var query: Delete = Delete(from: table)
+    do {
+      let values: [String: Any] = try QueryEncoder().encode(queryParams)
+      let filter = try Self.getFilter(query: query, values: values, table: table)
+      query = query.where(filter)
+    } catch let error {
+      onCompletion(Self.convertError(error))
+      return
+    }
     Self.executeQuery(query: query, using: db, onCompletion)
   }
 
@@ -863,13 +897,24 @@ public extension Model {
   /// 6 - If the array still as tuples, iterate through them and append a new filter (column == value) with an AND operator
   /// 7 - Finally, return the Filter
 
-  private static func getFilter<Q: QueryParams>(queryParams: Q, table: Table) throws -> Filter {
-    var queryDictionary: [String: String] = try QueryEncoder().encode(queryParams)
+  private static func getFilter(query: Query, values: [String: Any], table: Table) throws -> Filter {
+    var columnsToValues: [(column: Column, opr: Operator, value: String)] = []
 
-    var columnsToValues: [(column: Column, value: String)] = []
     for column in table.columns {
-      if let value = queryDictionary[column.name] {
-        columnsToValues.append((column, value))
+      if let value = values[column.name] {
+        var stringValue = String(describing: value)
+        var opr: Operator = .equal
+        if let operation = value as? KituraContracts.Operation {
+          opr = operation.getOperator()
+          stringValue = operation.getValue()
+        } else if var array = value as? Array<Any> {
+          opr = .or
+          stringValue = String(describing: array.removeFirst())
+          for val in array {
+            stringValue += ",\(val)"
+          }
+        }
+        columnsToValues.append((column, opr, stringValue))
       }
     }
 
@@ -878,11 +923,95 @@ public extension Model {
     }
 
     let firstTuple = columnsToValues.removeFirst()
-    var filter: Filter = (firstTuple.column == firstTuple.value)
-    for (column, value) in columnsToValues {
-      filter = filter && (column == value)
+    var filter: Filter = try getOperation(firstTuple.column, firstTuple.opr, firstTuple.value)
+    for (column, opr, value) in columnsToValues {
+      let newFilter = try getOperation(column, opr, value)
+      filter = filter && newFilter
     }
+
     return filter
+  }
+
+  private static func getOperation(_ column: Column, _ opr: Operator, _ value: String) throws -> Filter {
+      let filter: Filter
+      switch opr {
+      case .equal:
+          filter = (column == value)
+      case .greaterThan:
+          filter = (column > value)
+      case .greaterThanOrEqual:
+          filter = (column >= value)
+      case .lowerThan:
+          filter = (column < value)
+      case .lowerThanOrEqual:
+          filter = (column <= value)
+      case .inclusiveRange:
+          var array = value.split(separator: ",")
+          if array.count == 2 {
+            let start = String(array[0])
+            let end = String(array[1])
+            filter = (column >= start) && (column <= end)
+          } else {
+            throw RequestError(.ormQueryError, reason: "Could not extract values for Query Parameters")
+          }
+      case .exclusiveRange:
+          var array = value.split(separator: ",")
+          if array.count == 2 {
+            let start = String(array[0])
+            let end = String(array[1])
+            filter = (column > start) && (column < end)
+          } else {
+            throw RequestError(.ormQueryError, reason: "Could not extract values for Query Parameters")
+          }
+      case .or:
+          var array = value.split(separator: ",")
+          if array.count > 1 {
+            var newFilter: Filter = (column == String(array.removeFirst()))
+            for val in array {
+              newFilter = newFilter || (column == String(val))
+            }
+            filter = newFilter
+          } else {
+            filter = (column == value)
+          }
+      }
+      return filter
+  }
+
+  private static func getOrderBy(query: Query, values: [String: Any], table: Table) -> [OrderBy] {
+    var orderByArray: [OrderBy] = []
+    for (_, value) in values {
+       if let orderValue = value as? OrderByAscending {
+         let values = orderValue.getValues()
+         let columns = table.columns.filter { values.contains($0.name) }
+         let sortedColumns = columns.sorted( by: {
+            if let first = values.index(of: $0.name),
+               let second = values.index(of: $1.name) {
+                 return first < second
+               }
+            return false
+         } )
+         for column in sortedColumns {
+           orderByArray.append(.ASC(column))
+         }
+       }
+       if let orderValue = value as? OrderByDecending {
+         let values = orderValue.getValues()
+         let columns = table.columns.filter { values.contains($0.name) }
+         let sortedColumns = columns.sorted( by: {
+            if let first = values.index(of: $0.name),
+               let second = values.index(of: $1.name) {
+                 return first < second
+               }
+            return false
+         } )
+         for column in sortedColumns {
+           orderByArray.append(.DESC(column))
+         }
+       }
+    }
+
+    return orderByArray
   }
 
   private static func convertError(_ error: Error) -> RequestError {
