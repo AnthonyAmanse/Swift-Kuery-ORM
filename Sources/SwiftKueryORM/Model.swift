@@ -63,27 +63,27 @@ public protocol Model: Codable {
 
   /// Call to find all the models in the database that accepts a completion
   /// handler. The callback is passed an array of models or an error
-  static func findAll(using db: Database?, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void)
+    static func findAll(using db: Database?, orderBy: OrderBy?, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void)
 
   /// Call to find all the models in the database that accepts a completion
   /// handler. The callback is passed an array of tuples (id, model) or an error
-  static func findAll<I: Identifier>(using db: Database?, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void)
+  static func findAll<I: Identifier>(using db: Database?, orderBy: OrderBy?, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void)
 
   /// Call to find all the models in the database that accepts a completion
   /// handler. The callback is passed a dictionary [id: model] or an error
-  static func findAll<I: Identifier>(using db: Database?, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void)
+  static func findAll<I: Identifier>(using db: Database?, orderBy: OrderBy?, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void)
 
   /// Call to find all the models in the database matching the QueryParams that accepts a completion
   /// handler. The callback is passed an array of models or an error
-  static func findAll<Q: QueryParams>(using db: Database?, matching queryParams: Q, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void)
+  static func findAll<Q: QueryParams>(using db: Database?, orderBy: OrderBy?, matching queryParams: Q, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void)
 
   /// Call to find all the models in the database matching the QueryParams that accepts a completion
   /// handler. The callback is passed an array of tuples (id, model) or an error
-  static func findAll<Q: QueryParams, I: Identifier>(using db: Database?, matching queryParams: Q, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void)
+  static func findAll<Q: QueryParams, I: Identifier>(using db: Database?, orderBy: OrderBy?, matching queryParams: Q, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void)
 
   /// Call to find all the models in the database matching the QueryParams that accepts a completion
   /// handler. The callback is passed a dictionary [id: model] or an error
-  static func findAll<Q: QueryParams, I: Identifier>(using db: Database?, matching queryParams: Q, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void)
+  static func findAll<Q: QueryParams, I: Identifier>(using db: Database?, orderBy: OrderBy?, matching queryParams: Q, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void)
 
   /// Call to update a model in the database with an id that accepts a completion
   /// handler. The callback is passed a updated model or an error
@@ -282,7 +282,7 @@ public extension Model {
   }
 
   ///
-  static func findAll(using db: Database? = nil, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void) {
+    static func findAll(using db: Database? = nil, orderBy: OrderBy? = nil, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void) {
     var table: Table
     do {
       table = try Self.getTable()
@@ -291,14 +291,20 @@ public extension Model {
       return
     }
 
-    let query = Select(from: table)
+    let query: Query
+    if (orderBy != nil) {
+        query = Select(from: table).order(by: orderBy!)
+    } else {
+        query = Select(from: table)
+    }
+
     Self.executeQuery(query: query, using: db, onCompletion)
   }
 
   /// Find all the models
   /// - Parameter using: Optional Database to use
   /// - Returns: An array of tuples (id, model)
-  static func findAll<I: Identifier>(using db: Database? = nil, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void) {
+  static func findAll<I: Identifier>(using db: Database? = nil, orderBy: OrderBy? = nil, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void) {
     var table: Table
     do {
       table = try Self.getTable()
@@ -307,12 +313,18 @@ public extension Model {
       return
     }
 
-    let query = Select(from: table)
+    let query: Query
+    if (orderBy != nil) {
+        query = Select(from: table).order(by: orderBy!)
+    } else {
+        query = Select(from: table)
+    }
+
     Self.executeQuery(query: query, using: db, onCompletion)
   }
 
   /// :nodoc:
-  static func findAll<I: Identifier>(using db: Database? = nil, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void) {
+  static func findAll<I: Identifier>(using db: Database? = nil, orderBy: OrderBy? = nil, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void) {
     var table: Table
     do {
       table = try Self.getTable()
@@ -321,7 +333,13 @@ public extension Model {
       return
     }
 
-    let query = Select(from: table)
+    let query: Query
+    if (orderBy != nil) {
+        query = Select(from: table).order(by: orderBy!)
+    } else {
+        query = Select(from: table)
+    }
+
     Self.executeQuery(query: query, using: db) { (tuples: [(I, Self)]?, error: RequestError?) in
       if let error = error {
         onCompletion(nil, error)
@@ -341,7 +359,7 @@ public extension Model {
 
   /// - Parameter matching: Optional QueryParams to use
   /// - Returns: An array of model
-  static func findAll<Q: QueryParams>(using db: Database? = nil, matching queryParams: Q, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void) {
+  static func findAll<Q: QueryParams>(using db: Database? = nil, orderBy: OrderBy? = nil, matching queryParams: Q, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void) {
     var table: Table
     var filter: Filter
     do {
@@ -352,14 +370,20 @@ public extension Model {
       return
     }
 
-    let query = Select(from: table).where(filter)
+    let query: Query
+    if (orderBy != nil) {
+        query = Select(from: table).where(filter).order(by: orderBy!)
+    } else {
+        query = Select(from: table).where(filter)
+    }
+
     Self.executeQuery(query: query, using: db, onCompletion)
   }
 
   /// Find all the models matching the QueryParams
   /// - Parameter using: Optional Database to use
   /// - Returns: An array of tuples (id, model)
-  static func findAll<Q: QueryParams, I: Identifier>(using db: Database? = nil, matching queryParams: Q, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void) {
+  static func findAll<Q: QueryParams, I: Identifier>(using db: Database? = nil, orderBy: OrderBy? = nil, matching queryParams: Q, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void) {
     var table: Table
     var filter: Filter
     do {
@@ -370,14 +394,20 @@ public extension Model {
       return
     }
 
-    let query = Select(from: table).where(filter)
+    let query: Query
+    if (orderBy != nil) {
+        query = Select(from: table).where(filter).order(by: orderBy!)
+    } else {
+        query = Select(from: table).where(filter)
+    }
+
     Self.executeQuery(query: query, using: db, onCompletion)
   }
 
   /// Find all the models matching the QueryParams
   /// - Parameter using: Optional Database to use
   /// - Returns: A dictionary [id: model]
-  static func findAll<Q:QueryParams, I: Identifier>(using db: Database? = nil, matching queryParams: Q, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void) {
+  static func findAll<Q:QueryParams, I: Identifier>(using db: Database? = nil, orderBy: OrderBy? = nil, matching queryParams: Q, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void) {
     var table: Table
     var filter: Filter
     do {
@@ -388,7 +418,13 @@ public extension Model {
       return
     }
 
-    let query = Select(from: table).where(filter)
+    let query: Query
+    if (orderBy != nil) {
+        query = Select(from: table).where(filter).order(by: orderBy!)
+    } else {
+        query = Select(from: table).where(filter)
+    }
+
     Self.executeQuery(query: query, using: db) { (tuples: [(I, Self)]?, error: RequestError?) in
       if let error = error {
         onCompletion(nil, error)
