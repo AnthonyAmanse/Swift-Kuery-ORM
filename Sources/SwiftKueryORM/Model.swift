@@ -291,11 +291,9 @@ public extension Model {
       return
     }
 
-    let query: Query
-    if (orderBy != nil) {
-        query = Select(from: table).order(by: orderBy!)
-    } else {
-        query = Select(from: table)
+    var query = Select(from: table)
+    if let orderBy = orderBy {
+        query = query.order(by: orderBy)
     }
 
     Self.executeQuery(query: query, using: db, onCompletion)
@@ -313,11 +311,9 @@ public extension Model {
       return
     }
 
-    let query: Query
-    if (orderBy != nil) {
-        query = Select(from: table).order(by: orderBy!)
-    } else {
-        query = Select(from: table)
+    var query = Select(from: table)
+    if let orderBy = orderBy {
+        query = query.order(by: orderBy)
     }
 
     Self.executeQuery(query: query, using: db, onCompletion)
@@ -333,11 +329,9 @@ public extension Model {
       return
     }
 
-    let query: Query
-    if (orderBy != nil) {
-        query = Select(from: table).order(by: orderBy!)
-    } else {
-        query = Select(from: table)
+    var query = Select(from: table)
+    if let orderBy = orderBy {
+        query = query.order(by: orderBy)
     }
 
     Self.executeQuery(query: query, using: db) { (tuples: [(I, Self)]?, error: RequestError?) in
@@ -370,11 +364,9 @@ public extension Model {
       return
     }
 
-    let query: Query
-    if (orderBy != nil) {
-        query = Select(from: table).where(filter).order(by: orderBy!)
-    } else {
-        query = Select(from: table).where(filter)
+    var query = Select(from: table).where(filter)
+    if let orderBy = orderBy {
+        query = query.order(by: orderBy)
     }
 
     Self.executeQuery(query: query, using: db, onCompletion)
@@ -394,11 +386,9 @@ public extension Model {
       return
     }
 
-    let query: Query
-    if (orderBy != nil) {
-        query = Select(from: table).where(filter).order(by: orderBy!)
-    } else {
-        query = Select(from: table).where(filter)
+    var query = Select(from: table).where(filter)
+    if let orderBy = orderBy {
+        query = query.order(by: orderBy)
     }
 
     Self.executeQuery(query: query, using: db, onCompletion)
@@ -418,11 +408,9 @@ public extension Model {
       return
     }
 
-    let query: Query
-    if (orderBy != nil) {
-        query = Select(from: table).where(filter).order(by: orderBy!)
-    } else {
-        query = Select(from: table).where(filter)
+    var query = Select(from: table).where(filter)
+    if let orderBy = orderBy {
+        query = query.order(by: orderBy)
     }
 
     Self.executeQuery(query: query, using: db) { (tuples: [(I, Self)]?, error: RequestError?) in
