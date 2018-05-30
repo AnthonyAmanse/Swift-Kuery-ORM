@@ -2,6 +2,7 @@ import XCTest
 
 @testable import SwiftKueryORM
 import Foundation
+import SwiftKuery
 import KituraContracts
 
 class TestFind: XCTestCase {
@@ -10,6 +11,9 @@ class TestFind: XCTestCase {
             ("testFind", testFind),
             ("testFindAll", testFindAll),
             ("testFindAllMatching", testFindAllMatching),
+            ("testFindAllLimit", testFindAllLimit),
+            ("testFindAllLimitAndOffset", testFindAllLimitAndOffset),
+            ("testFindAllOrderBy", testFindAllOrderBy),
         ]
     }
 
@@ -70,11 +74,6 @@ class TestFind: XCTestCase {
         })
     }
 
-    struct Filter: QueryParams {
-      let name: String
-      let age: Int
-    }
-
     /**
       Testing that the correct SQL Query is created to retrieve all the models.
       Testing that correct amount of models are retrieved
@@ -108,5 +107,83 @@ class TestFind: XCTestCase {
                 expectation.fulfill()
             }
         })
+    }
+
+
+
+    func testFindAllLimit() {
+        let connection: TestConnection = createConnection(.returnOneRow)
+        Database.default = Database(single: connection)
+        performTest(asyncTasks: { expectation in
+            Person.findAll(limit: 1) { array, error in
+                XCTAssertNil(error, "Find Failed: \(String(describing: error))")
+                XCTAssertNotNil(connection.query, "Find Failed: Query is nil")
+                if let query = connection.query {
+                  let expectedQuery = "SELECT * FROM People LIMIT 1"
+                  let resultQuery = connection.descriptionOf(query: query)
+                  XCTAssertEqual(resultQuery, expectedQuery, "Find Failed: Invalid query")
+                }
+                XCTAssertNotNil(array, "Find Failed: No array of models returned")
+                if let array = array {
+                  print(array)
+                  XCTAssertEqual(array.count, 1, "Find Failed: \(String(describing: array.count)) is not equal to 1")
+                }
+                expectation.fulfill()
+            }
+        })
+    }
+
+    func testFindAllLimitAndOffset() {
+        let connection: TestConnection = createConnection(.returnOneRow)
+        Database.default = Database(single: connection)
+        performTest(asyncTasks: { expectation in
+            Person.findAll(offset: 2, limit: 1) { array, error in
+                XCTAssertNil(error, "Find Failed: \(String(describing: error))")
+                XCTAssertNotNil(connection.query, "Find Failed: Query is nil")
+                if let query = connection.query {
+                  let expectedQuery = "SELECT * FROM People LIMIT 1 OFFSET 2"
+                  let resultQuery = connection.descriptionOf(query: query)
+                  XCTAssertEqual(resultQuery, expectedQuery, "Find Failed: Invalid query")
+                }
+                XCTAssertNotNil(array, "Find Failed: No array of models returned")
+                if let array = array {
+                  XCTAssertEqual(array.count, 1, "Find Failed: \(String(describing: array.count)) is not equal to 1")
+                }
+                expectation.fulfill()
+            }
+        })
+    }
+
+    func testFindAllOrderBy() {
+        let connection: TestConnection = createConnection(.returnThreeRows)
+        Database.default = Database(single: connection)
+        var column: Column?
+        do {
+            let table = try Person.getTable()
+            column = table.columns.first(where: {$0.name == "age"})!
+        } catch let error {
+            XCTAssertNil(error, "Find Failed: \(String(describing: error))")
+        }
+        performTest(asyncTasks: { expectation in
+            Person.findAll(orderBy: OrderBy.DESC(column!)) { array, error in
+                XCTAssertNil(error, "Find Failed: \(String(describing: error))")
+                XCTAssertNotNil(connection.query, "Find Failed: Query is nil")
+                if let query = connection.query {
+                  let expectedQuery = "SELECT * FROM People ORDER BY People.age DESC"
+                  let resultQuery = connection.descriptionOf(query: query)
+                  XCTAssertEqual(resultQuery, expectedQuery, "Find Failed: Invalid query")
+                }
+                XCTAssertNotNil(array, "Find Failed: No array of models returned")
+                if let array = array {
+                  XCTAssertEqual(array.count, 3, "Find Failed: \(String(describing: array.count)) is not equal to 3")
+                }
+                expectation.fulfill()
+            }
+        })
+    }
+
+    struct Filter: QueryParams {
+      let name: String
+      let age: Int
     }
 }

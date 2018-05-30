@@ -63,27 +63,27 @@ public protocol Model: Codable {
 
   /// Call to find all the models in the database that accepts a completion
   /// handler. The callback is passed an array of models or an error
-    static func findAll(using db: Database?, orderBy: OrderBy?, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void)
+  static func findAll(using db: Database?, orderBy: OrderBy?, offset: Int?, limit: Int?, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void)
 
   /// Call to find all the models in the database that accepts a completion
   /// handler. The callback is passed an array of tuples (id, model) or an error
-  static func findAll<I: Identifier>(using db: Database?, orderBy: OrderBy?, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void)
+  static func findAll<I: Identifier>(using db: Database?, orderBy: OrderBy?, offset: Int?, limit: Int?, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void)
 
   /// Call to find all the models in the database that accepts a completion
   /// handler. The callback is passed a dictionary [id: model] or an error
-  static func findAll<I: Identifier>(using db: Database?, orderBy: OrderBy?, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void)
+  static func findAll<I: Identifier>(using db: Database?, orderBy: OrderBy?, offset: Int?, limit: Int?, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void)
 
   /// Call to find all the models in the database matching the QueryParams that accepts a completion
   /// handler. The callback is passed an array of models or an error
-  static func findAll<Q: QueryParams>(using db: Database?, orderBy: OrderBy?, matching queryParams: Q, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void)
+  static func findAll<Q: QueryParams>(using db: Database?, orderBy: OrderBy?, offset: Int?, limit: Int?, matching queryParams: Q, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void)
 
   /// Call to find all the models in the database matching the QueryParams that accepts a completion
   /// handler. The callback is passed an array of tuples (id, model) or an error
-  static func findAll<Q: QueryParams, I: Identifier>(using db: Database?, orderBy: OrderBy?, matching queryParams: Q, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void)
+  static func findAll<Q: QueryParams, I: Identifier>(using db: Database?, orderBy: OrderBy?, offset: Int?, limit: Int?, matching queryParams: Q, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void)
 
   /// Call to find all the models in the database matching the QueryParams that accepts a completion
   /// handler. The callback is passed a dictionary [id: model] or an error
-  static func findAll<Q: QueryParams, I: Identifier>(using db: Database?, orderBy: OrderBy?, matching queryParams: Q, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void)
+  static func findAll<Q: QueryParams, I: Identifier>(using db: Database?, orderBy: OrderBy?, offset: Int?, limit: Int?, matching queryParams: Q, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void)
 
   /// Call to update a model in the database with an id that accepts a completion
   /// handler. The callback is passed a updated model or an error
@@ -282,7 +282,7 @@ public extension Model {
   }
 
   ///
-    static func findAll(using db: Database? = nil, orderBy: OrderBy? = nil, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void) {
+  static func findAll(using db: Database? = nil, orderBy: OrderBy? = nil, offset: Int? = nil, limit: Int? = nil, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void) {
     var table: Table
     do {
       table = try Self.getTable()
@@ -294,6 +294,12 @@ public extension Model {
     var query = Select(from: table)
     if let orderBy = orderBy {
         query = query.order(by: orderBy)
+    }
+    if let offset = offset {
+        query = query.offset(offset)
+    }
+    if let limit = limit {
+        query = query.limit(to: limit)
     }
 
     Self.executeQuery(query: query, using: db, onCompletion)
@@ -302,7 +308,7 @@ public extension Model {
   /// Find all the models
   /// - Parameter using: Optional Database to use
   /// - Returns: An array of tuples (id, model)
-  static func findAll<I: Identifier>(using db: Database? = nil, orderBy: OrderBy? = nil, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void) {
+  static func findAll<I: Identifier>(using db: Database? = nil, orderBy: OrderBy? = nil, offset: Int? = nil, limit: Int? = nil, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void) {
     var table: Table
     do {
       table = try Self.getTable()
@@ -314,13 +320,19 @@ public extension Model {
     var query = Select(from: table)
     if let orderBy = orderBy {
         query = query.order(by: orderBy)
+    }
+    if let offset = offset {
+        query = query.offset(offset)
+    }
+    if let limit = limit {
+        query = query.limit(to: limit)
     }
 
     Self.executeQuery(query: query, using: db, onCompletion)
   }
 
   /// :nodoc:
-  static func findAll<I: Identifier>(using db: Database? = nil, orderBy: OrderBy? = nil, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void) {
+  static func findAll<I: Identifier>(using db: Database? = nil, orderBy: OrderBy? = nil, offset: Int? = nil, limit: Int? = nil, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void) {
     var table: Table
     do {
       table = try Self.getTable()
@@ -332,6 +344,12 @@ public extension Model {
     var query = Select(from: table)
     if let orderBy = orderBy {
         query = query.order(by: orderBy)
+    }
+    if let offset = offset {
+        query = query.offset(offset)
+    }
+    if let limit = limit {
+        query = query.limit(to: limit)
     }
 
     Self.executeQuery(query: query, using: db) { (tuples: [(I, Self)]?, error: RequestError?) in
@@ -353,7 +371,7 @@ public extension Model {
 
   /// - Parameter matching: Optional QueryParams to use
   /// - Returns: An array of model
-  static func findAll<Q: QueryParams>(using db: Database? = nil, orderBy: OrderBy? = nil, matching queryParams: Q, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void) {
+  static func findAll<Q: QueryParams>(using db: Database? = nil, orderBy: OrderBy? = nil, offset: Int? = nil, limit: Int? = nil, matching queryParams: Q, _ onCompletion: @escaping ([Self]?, RequestError?) -> Void) {
     var table: Table
     var filter: Filter
     do {
@@ -367,6 +385,12 @@ public extension Model {
     var query = Select(from: table).where(filter)
     if let orderBy = orderBy {
         query = query.order(by: orderBy)
+    }
+    if let offset = offset {
+        query = query.offset(offset)
+    }
+    if let limit = limit {
+        query = query.limit(to: limit)
     }
 
     Self.executeQuery(query: query, using: db, onCompletion)
@@ -375,7 +399,7 @@ public extension Model {
   /// Find all the models matching the QueryParams
   /// - Parameter using: Optional Database to use
   /// - Returns: An array of tuples (id, model)
-  static func findAll<Q: QueryParams, I: Identifier>(using db: Database? = nil, orderBy: OrderBy? = nil, matching queryParams: Q, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void) {
+  static func findAll<Q: QueryParams, I: Identifier>(using db: Database? = nil, orderBy: OrderBy? = nil, offset: Int? = nil, limit: Int? = nil, matching queryParams: Q, _ onCompletion: @escaping ([(I, Self)]?, RequestError?) -> Void) {
     var table: Table
     var filter: Filter
     do {
@@ -389,6 +413,12 @@ public extension Model {
     var query = Select(from: table).where(filter)
     if let orderBy = orderBy {
         query = query.order(by: orderBy)
+    }
+    if let offset = offset {
+        query = query.offset(offset)
+    }
+    if let limit = limit {
+        query = query.limit(to: limit)
     }
 
     Self.executeQuery(query: query, using: db, onCompletion)
@@ -397,7 +427,7 @@ public extension Model {
   /// Find all the models matching the QueryParams
   /// - Parameter using: Optional Database to use
   /// - Returns: A dictionary [id: model]
-  static func findAll<Q:QueryParams, I: Identifier>(using db: Database? = nil, orderBy: OrderBy? = nil, matching queryParams: Q, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void) {
+  static func findAll<Q:QueryParams, I: Identifier>(using db: Database? = nil, orderBy: OrderBy? = nil, offset: Int? = nil, limit: Int? = nil, matching queryParams: Q, _ onCompletion: @escaping ([I: Self]?, RequestError?) -> Void) {
     var table: Table
     var filter: Filter
     do {
@@ -411,6 +441,12 @@ public extension Model {
     var query = Select(from: table).where(filter)
     if let orderBy = orderBy {
         query = query.order(by: orderBy)
+    }
+    if let offset = offset {
+        query = query.offset(offset)
+    }
+    if let limit = limit {
+        query = query.limit(to: limit)
     }
 
     Self.executeQuery(query: query, using: db) { (tuples: [(I, Self)]?, error: RequestError?) in
