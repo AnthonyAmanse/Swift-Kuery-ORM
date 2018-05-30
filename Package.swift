@@ -26,7 +26,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftKueryORMTests",
-            dependencies: ["SwiftKueryORM", "KituraContracts", "SwiftKuery"]
+            dependencies: ["SwiftKueryORM", "KituraContracts"]
         )
     ]
 )

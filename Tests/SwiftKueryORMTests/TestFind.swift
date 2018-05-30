@@ -13,7 +13,8 @@ class TestFind: XCTestCase {
             ("testFindAllMatching", testFindAllMatching),
             ("testFindAllLimit", testFindAllLimit),
             ("testFindAllLimitAndOffset", testFindAllLimitAndOffset),
-            ("testFindAllOrderBy", testFindAllOrderBy),
+            ("testFindAllOrderByDescending", testFindAllOrderByDescending),
+            ("testFindAllOrderByAscending", testFindAllOrderByAscending),
         ]
     }
 
@@ -74,6 +75,11 @@ class TestFind: XCTestCase {
         })
     }
 
+    struct Filter: QueryParams {
+      let name: String
+      let age: Int
+    }
+
     /**
       Testing that the correct SQL Query is created to retrieve all the models.
       Testing that correct amount of models are retrieved
@@ -125,7 +131,6 @@ class TestFind: XCTestCase {
                 }
                 XCTAssertNotNil(array, "Find Failed: No array of models returned")
                 if let array = array {
-                  print(array)
                   XCTAssertEqual(array.count, 1, "Find Failed: \(String(describing: array.count)) is not equal to 1")
                 }
                 expectation.fulfill()
@@ -154,8 +159,8 @@ class TestFind: XCTestCase {
         })
     }
 
-    func testFindAllOrderBy() {
-        let connection: TestConnection = createConnection(.returnThreeRows)
+    func testFindAllOrderByDescending() {
+        let connection: TestConnection = createConnection(.returnThreeRowsSortedDescending)
         Database.default = Database(single: connection)
         var column: Column?
         do {
@@ -175,6 +180,11 @@ class TestFind: XCTestCase {
                 }
                 XCTAssertNotNil(array, "Find Failed: No array of models returned")
                 if let array = array {
+                  for (index, person) in array.enumerated() {
+                    if index + 1 < array.count {
+                      XCTAssertGreaterThanOrEqual(person.age, array[index + 1].age, "Find Failed: Age of person: \(String(describing: person.age)) is not greater than or equal to age of next person: \(String(describing: array[index + 1].age))")
+                    }
+                  }
                   XCTAssertEqual(array.count, 3, "Find Failed: \(String(describing: array.count)) is not equal to 3")
                 }
                 expectation.fulfill()
@@ -182,8 +192,36 @@ class TestFind: XCTestCase {
         })
     }
 
-    struct Filter: QueryParams {
-      let name: String
-      let age: Int
+    func testFindAllOrderByAscending() {
+        let connection: TestConnection = createConnection(.returnThreeRowsSortedAscending)
+        Database.default = Database(single: connection)
+        var column: Column?
+        do {
+            let table = try Person.getTable()
+            column = table.columns.first(where: {$0.name == "age"})!
+        } catch let error {
+            XCTAssertNil(error, "Find Failed: \(String(describing: error))")
+        }
+        performTest(asyncTasks: { expectation in
+            Person.findAll(orderBy: OrderBy.DESC(column!)) { array, error in
+                XCTAssertNil(error, "Find Failed: \(String(describing: error))")
+                XCTAssertNotNil(connection.query, "Find Failed: Query is nil")
+                if let query = connection.query {
+                  let expectedQuery = "SELECT * FROM People ORDER BY People.age DESC"
+                  let resultQuery = connection.descriptionOf(query: query)
+                  XCTAssertEqual(resultQuery, expectedQuery, "Find Failed: Invalid query")
+                }
+                XCTAssertNotNil(array, "Find Failed: No array of models returned")
+                if let array = array {
+                  for (index, person) in array.enumerated() {
+                    if index + 1 < array.count {
+                      XCTAssertLessThanOrEqual(person.age, array[index + 1].age, "Find Failed: Age of person: \(String(describing: person.age)) is not greater than or equal to age of next person: \(String(describing: array[index + 1].age))")
+                    }
+                  }
+                  XCTAssertEqual(array.count, 3, "Find Failed: \(String(describing: array.count)) is not equal to 3")
+                }
+                expectation.fulfill()
+            }
+        })
     }
 }
