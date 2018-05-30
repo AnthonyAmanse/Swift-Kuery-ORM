@@ -215,7 +215,7 @@ class TestFind: XCTestCase {
                 if let array = array {
                   for (index, person) in array.enumerated() {
                     if index + 1 < array.count {
-                      XCTAssertLessThanOrEqual(person.age, array[index + 1].age, "Find Failed: Age of person: \(String(describing: person.age)) is not greater than or equal to age of next person: \(String(describing: array[index + 1].age))")
+                      XCTAssertLessThanOrEqual(person.age, array[index + 1].age, "Find Failed: Age of person: \(String(describing: person.age)) is not less than or equal to age of next person: \(String(describing: array[index + 1].age))")
                     }
                   }
                   XCTAssertEqual(array.count, 3, "Find Failed: \(String(describing: array.count)) is not equal to 3")
